@@ -2,7 +2,7 @@
 // Created by daans on 25-10-14.
 //
 
-#include "FileHandle.h"
+#include "../inc/FileHandle.h"
 
 FileHandle::FileHandle(const std::string &relative_file_path):_file_path(relative_file_path) {
 
