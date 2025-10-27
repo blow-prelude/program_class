@@ -91,7 +91,7 @@ void DocProcess::format_para(
 
         }
 
-        size_t hor_bytes = this->hor_chars;
+        size_t hor_bytes = this->return_hor_chars();
 
         // 将整个段落的文本内容合并成一个连续的字符串
         std::string combined_lines;

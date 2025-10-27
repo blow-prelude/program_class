@@ -27,6 +27,8 @@ public:
     std::string remove_head_space(const std::string& line_content);            // 删除段尾空格
     size_t count_hor_character(const std::string &line);           // 统计一行的字数（字节数）
 
+    size_t return_hor_chars() { return this->hor_chars; }
+
     void format_para( const std::vector<std::string>& para_lines,std::vector<std::string>& formatted_para_lines);    // 控制首行缩进2格
 
 private:

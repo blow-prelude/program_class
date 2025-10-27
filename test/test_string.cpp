@@ -9,14 +9,14 @@ int main() {
     system("chcp 65001");
 
     std::string contents;
-    FileHandle raw_file("../data/res/test01.txt");
+    FileHandle raw_file("../data/res/test01_process.txt");
     bool res = raw_file.read_file(contents);
     if (res) {
         size_t contents_size = contents.size();
         size_t contents_len = contents.length();
         std::cout << "size of full space: " << sizeof("　") << std::endl;
-        std::cout << "size of space with double: " << sizeof(" ") << std::endl;
-        std::cout << "size of space with single: " << sizeof(' ') << std::endl;
+        std::cout << "size of space with double: " << sizeof(",") << std::endl;
+        std::cout << "size of space with single: " << sizeof('，') << std::endl;
 
         std::cout << "size of content: " << contents_size << std::endl;
         std::cout << "length of content: " << contents_len << std::endl;
@@ -25,10 +25,11 @@ int main() {
             return -1;
         }
         size_t current_pos = 0;
-        std::cout << contents.substr(0, 54) << std::endl;
-        // while (current_pos < contents_len) {
-        //     current_pos = contents.find_first_of('\n', current_pos);
-        // }
+
+
+        current_pos = contents.find_first_of('\n', current_pos);
+        std::cout << contents.substr(0, current_pos) << std::endl;
+
 
     }
     return 0;
