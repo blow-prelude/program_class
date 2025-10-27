@@ -58,22 +58,98 @@ std::string DocProcess::convert_punctuation(const std::string& content) {
     }
 
 void DocProcess::format_para(
+    /*
+     * params: std::vector<std::string>& para_lines   需要处理的段落
+     * params: std::vector<std::string>& formatted_para_lines    格式化后的段落
+     *
+     * 该函数实现将一个段落控制首行2格缩进
+     */
     const std::vector<std::string>& para_lines,
-    std::vector<std::string>& formatted_para_lines) {
+    std::vector<std::string>& formatted_para_lines)
+{
     if (para_lines.empty()) {
         return;
     }
 
     std::string paragraph_buffer;
     // 首行缩进
-    // 先统一删除段落开头的符号，然乎加上2个全角空格
-    paragraph_buffer.append(FULL_SPACE + FULL_SPACE + para_lines[0]);
-
-    // 追加段落中的后续行 (不缩进)
-    for (size_t i = 1; i < para_lines.size(); ++i) {
-        paragraph_buffer.append("\n").append(para_lines[i]);
+    // 先统一删除段落开头的符号，然后加上2个全角空格
+    std::string first_para_line = this->remove_head_space(para_lines[0]);
+    std::cout << "first line of paragraph: " << first_para_line << std::endl;
+    // 如果段落只有一行，直接结束
+    if (para_lines.size() == 1) {
+        formatted_para_lines.push_back(FULL_SPACE + FULL_SPACE + first_para_line);
+        return;
     }
-    formatted_para_lines.push_back(paragraph_buffer);
+
+    // 如果段落不止一行，可以把第一行的字数作为每行的标准字数
+    else {
+        // 只计算一次，降低计算量
+        if (this->is_count_hor==false) {
+            this->hor_chars = this->count_hor_character(first_para_line);
+            this->is_count_hor = true;
+
+        }
+
+        size_t hor_bytes = this->hor_chars;
+
+        // 将整个段落的文本内容合并成一个连续的字符串
+        std::string combined_lines;
+        // 预估总长度以减少内存重新分配
+        size_t total_len = hor_bytes;
+        for (size_t i = 1; i < para_lines.size(); ++i) {
+            total_len += para_lines[i].length();
+        }
+        combined_lines.reserve(total_len);
+
+        combined_lines.append(first_para_line);
+        for (size_t i = 1; i < para_lines.size(); ++i) {
+            combined_lines.append(para_lines[i]);
+        }
+
+
+        // 遍历合并后的内容，根据目标长度进行分行和缩进
+        size_t current_pos = 0; // 当前在combined_paragraph_content中读取的起始位置
+        bool is_first_output_line = true; // 标记是否为即将输出的第一行
+
+        while (current_pos < combined_lines.length()) {
+            std::string current_output_line_str;
+            size_t current_line_chars; // 当前行需要从combined_paragraph_content中取出的字节数
+
+            if (is_first_output_line) {
+                // 首行添加两个全角空格的缩进
+                current_output_line_str.append(FULL_SPACE + FULL_SPACE);
+
+                // 计算首行内容部分应有的字节长度。
+                // 为了让整个首行（缩进 + 内容）的总字节长度与TARGET_TOTAL_LINE_BYTE_LENGTH相等，
+                // 首行内容部分的长度需要减去缩进的字节长度。
+                size_t indentation_bytes = 2 * FULL_SPACE_LEN;
+                if (hor_bytes > indentation_bytes) {
+                    current_line_chars = hor_bytes - indentation_bytes;
+                } else {
+                    // 如果目标总长度小于或等于缩进长度，则首行内容部分为空或非常短
+                    current_line_chars = 0;
+                }
+            } else {
+                // 后续行不进行额外缩进，内容部分直接取目标总长度
+                current_line_chars = hor_bytes;
+            }
+
+            // 确保不会读取超出combined_paragraph_content的范围
+            size_t actual_bytes_to_extract = std::min(current_line_chars, combined_lines.length() - current_pos);
+
+            std::string segment = combined_lines.substr(current_pos, actual_bytes_to_extract);
+            current_output_line_str.append(segment);
+            formatted_para_lines.push_back(current_output_line_str);
+
+
+            // 更新读取位置，为下一行做准备
+            current_pos += actual_bytes_to_extract;
+            is_first_output_line = false; // 标记为非首行，以便下一次循环处理
+
+        }
+    }
+
 }
 
 
@@ -145,9 +221,27 @@ std::string DocProcess::remove_head_space(const std::string& line_content) {
     }
 
     return line_content.substr(idx);
-    }
+
 }
 
+
+size_t DocProcess::count_hor_character(const std::string &line) {
+    /*
+     * params: std::string &line   一行的文本
+     * return: size_t  该行文本的字数
+     *
+     * 该函数实现统计一行文本的size（字节数）
+     */
+
+    // 首先判断该行是否被格式化处理过
+    if (line[0]==' ' || line[0]=='\t' || line[0]=='\r' ||
+        line[0] == FULL_SPACE[0] && line[1] == FULL_SPACE[1]) {
+        std::cerr << "except formated line " << std::endl;
+        return -1;
+    }
+
+    return line.size();
+}
 
 std::string DocProcess::process_document(const std::string& raw_content) {
     /*
@@ -159,6 +253,7 @@ std::string DocProcess::process_document(const std::string& raw_content) {
      * 本函数实现删除段尾多余空格，删除段落之间的空行，同时控制段落的首行缩进为2个ascii空格
      * 该函数是基于理想状态，即段落之间必须有空行
      */
+
     std::string processed_output;
     std::vector<std::string> joined_paras; // 用于存储处理后的有效段落
 
@@ -185,9 +280,9 @@ std::string DocProcess::process_document(const std::string& raw_content) {
             current_para.push_back(removed_line);
         }
         else {
-            // 如果当前段落不为空，说明当前段落结束，否则是连续的空行，pass
+            // 如果当前段落为空，说明当前段落结束，   否则是连续的空行，pass
             if (!current_para.empty()) {
-                format_para(current_para,formatted_content);
+                this->format_para(current_para,formatted_content);
                 // 清空当前段落，继续下一轮处理
                 current_para.clear();
             }

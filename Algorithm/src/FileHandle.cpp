@@ -19,6 +19,7 @@ bool FileHandle::read_file(std::string& content) const {
     std::ifstream file(this->_file_path, std::ios::in | std::ios::binary);
 
     if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << this->_file_path << std::endl;
         return false;
     }
 
@@ -33,7 +34,7 @@ bool FileHandle::read_file(std::string& content) const {
     if (!file.read(&content[0], size)) {
         return false;
     }
-
+    std::cout << "successfully read " << std::endl;
     return true;
 }
 

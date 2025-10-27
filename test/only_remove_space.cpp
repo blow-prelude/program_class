@@ -16,11 +16,12 @@ int main() {
     bool no_err = raw_file.read_file(raw_content);
     if (no_err) {
         DocProcess doc_process;
-        std::cout << "before convert :" << raw_content << std::endl;
+        // std::cout << "raw content:\n" << raw_content << std::endl;
         std::string processed_content = doc_process.convert_punctuation(raw_content);
-        std::cout << "after convert :" << processed_content << std::endl;
+        // std::cout << "after convert:\n" << processed_content << std::endl;
 
         std::string remove_content = doc_process.process_document(processed_content);
+        std::cout << "after process:\n" << remove_content << std::endl;
         no_err = processed_file.write_file(remove_content);
         if (!no_err) {
             std::cerr << "cannot open and write the file." << std::endl;
