@@ -9,9 +9,9 @@
 
 int main() {
     system("chcp 65001");
-    FileHandle raw_file("../data/raw/test01.txt");
-    FileHandle convert_file("../data/res/test01_convert.txt");
-    FileHandle processed_file("../data/res/test01_process.txt");
+    FileHandle raw_file("../data/raw/test05.txt");
+    FileHandle convert_file("../data/res/test05_convert.txt");
+    FileHandle processed_file("../data/res/test05_process.txt");
 
     std::string raw_content;
     bool no_err = raw_file.read_file(raw_content);
@@ -22,21 +22,21 @@ int main() {
         // std::cout << "after convert:\n" << processed_content << std::endl;
         no_err = convert_file.write_file(convert_content);
         if (!no_err) {
-            std::cerr << "cannot open and write the file." << std::endl;
+            std::cerr << "cannot open and write the after_convert file." << std::endl;
         }
 
         std::string remove_content = doc_process.process_document(convert_content);
         std::cout << "after process:\n" << remove_content << std::endl;
         no_err = processed_file.write_file(remove_content);
         if (!no_err) {
-            std::cerr << "cannot open and write the file." << std::endl;
+            std::cerr << "cannot open and write the after_remove file." << std::endl;
         }
         else {
 
         }
     }
     else {
-        std::cerr << "cannot open and read the file." << std::endl;
+        std::cerr << "cannot open and read raw content file." << std::endl;
         return -1;
     }
 

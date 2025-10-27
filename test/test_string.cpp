@@ -14,9 +14,9 @@ int main() {
     if (res) {
         size_t contents_size = contents.size();
         size_t contents_len = contents.length();
-        std::cout << "size of full space: " << sizeof("　") << std::endl;
-        std::cout << "size of space with double: " << sizeof(",") << std::endl;
-        std::cout << "size of space with single: " << sizeof('，') << std::endl;
+        std::cout << "size of full space: " << sizeof("3") << std::endl;
+        std::cout << "size of space with double: " << sizeof("2") << std::endl;
+        std::cout << "size of space with single: " << sizeof('4') << std::endl;
 
         std::cout << "size of content: " << contents_size << std::endl;
         std::cout << "length of content: " << contents_len << std::endl;
@@ -24,13 +24,14 @@ int main() {
             std::cout << "contents is empty" << std::endl;
             return -1;
         }
-        size_t current_pos = 0;
-
-
-        current_pos = contents.find_first_of('\n', current_pos);
-        std::cout << contents.substr(0, current_pos) << std::endl;
+        // size_t current_pos = 0;
+        //
+        //
+        // current_pos = contents.find_first_of('\n', current_pos);
+        std::cout << contents.substr(0, 210) << std::endl;
 
 
     }
     return 0;
 }
+

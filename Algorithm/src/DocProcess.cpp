@@ -75,7 +75,7 @@ void DocProcess::format_para(
     // 首行缩进
     // 先统一删除段落开头的符号，然后加上2个全角空格
     std::string first_para_line = this->remove_head_space(para_lines[0]);
-    std::cout << "first line of paragraph: " << first_para_line << std::endl;
+    std::cout << "first line of paragraph:" << first_para_line << std::endl;
     // 如果段落只有一行，直接结束
     if (para_lines.size() == 1) {
         formatted_para_lines.push_back(FULL_SPACE + FULL_SPACE + first_para_line);
@@ -96,7 +96,7 @@ void DocProcess::format_para(
         // 将整个段落的文本内容合并成一个连续的字符串
         std::string combined_lines;
         // 预估总长度以减少内存重新分配
-        size_t total_len = hor_bytes;
+        size_t total_len = hor_bytes+ 2*this->FULL_SPACE_LEN;
         for (size_t i = 1; i < para_lines.size(); ++i) {
             total_len += para_lines[i].length();
         }
@@ -120,9 +120,6 @@ void DocProcess::format_para(
                 // 首行添加两个全角空格的缩进
                 current_output_line_str.append(FULL_SPACE + FULL_SPACE);
 
-                // 计算首行内容部分应有的字节长度。
-                // 为了让整个首行（缩进 + 内容）的总字节长度与TARGET_TOTAL_LINE_BYTE_LENGTH相等，
-                // 首行内容部分的长度需要减去缩进的字节长度。
                 size_t indentation_bytes = 2 * FULL_SPACE_LEN;
                 if (hor_bytes > indentation_bytes) {
                     current_line_chars = hor_bytes - indentation_bytes;

@@ -9,18 +9,25 @@ add_executable(program_class main.cpp)
 # 测试标点转化功能
 add_executable(only_convert_punctuation
         test/only_convert_punctuation.cpp
-        algorithm/src/DocProcess.cpp
+        Algorithm/src/DocProcess.cpp
 )
 
 # 测试删除句末空格功能
 add_executable(only_remove_space
         test/only_remove_space.cpp
-        algorithm/src/FileHandle.cpp
-        algorithm/src/DocProcess.cpp
+        Algorithm/src/FileHandle.cpp
+        Algorithm/src/DocProcess.cpp
 )
 
 # 测试字符串的相关特性
 add_executable(test_string
         test/test_string.cpp
-        algorithm/src/FileHandle.cpp
+        Algorithm/src/FileHandle.cpp
 )
+
+# 测试统计功能
+add_executable(DocCount Algorithm/src/DocCount.cpp)
+
+# 测试转化功能
+add_executable(DocConvert
+        Algorithm/src/DocConvert.cpp)
