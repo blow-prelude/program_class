@@ -28,7 +28,7 @@ int main() {
         //
         //
         // current_pos = contents.find_first_of('\n', current_pos);
-        std::cout << contents.substr(0, 210) << std::endl;
+        std::cout << contents.substr(6, 329) << std::endl;
 
 
     }

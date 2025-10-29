@@ -156,7 +156,7 @@ std::string DocProcess::remove_tail_space(const std::string& line_content) {
      * params:const std::string& line_content   每一行的文本
      * return：std::string   删除句末空格的的文本
      *
-     * 该函数实现删除给定文本句末的ascii空格、tab、enter键，以及全角空格
+     * 该函数实现删除给定文本句末的ascii空格、tab、enter键，以及全角空格，但是没有删除换行符
      */
     // 检查内容是否为空
     if (line_content.empty()) {
@@ -192,12 +192,13 @@ std::string DocProcess::remove_head_space(const std::string& line_content) {
      * params:const std::string& line_content   每一行的文本
      * return：std::string   删除句末空格的的文本
      *
-     * 该函数实现删除给定文本句末的ascii空格、tab、enter键，以及全角空格
+     * 该函数实现删除给定文本句首的空格、tab、enter
      */
     // 检查内容是否为空
     if (line_content.empty()) {
         return line_content;
     }
+
     size_t total_len = line_content.length();
     size_t idx = 0;
     while (idx < total_len) {

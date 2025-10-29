@@ -1,202 +1,242 @@
+#include "../inc/DocConvert.h"
 #include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <cmath>
 #include <algorithm>
-#include <limits> // For std::numeric_limits
+#include <fstream> // 用于文件操作
 
-// --- UTF-8 辅助函数 ---
-// 这些函数是简化版，假定输入是有效的 UTF-8 序列。
-// 对于生产环境，可能需要更健壮的错误处理。
+DocConvert::DocConvert(const std::string& content):raw_content(content){}
 
-// 将 UTF-8 字符串解码为 Unicode 码点序列 (char32_t)
-std::vector<char32_t> decode_utf8(const std::string& utf8_str) {
-    std::vector<char32_t> unicode_chars;
-    for (size_t i = 0; i < utf8_str.length(); ) {
-        unsigned char c = utf8_str[i];
-        char32_t code_point;
-        size_t bytes_to_read = 0;
 
-        if ((c & 0x80) == 0) { // 1-byte sequence (0xxxxxxx) - ASCII
-            code_point = c;
-            bytes_to_read = 1;
-        } else if ((c & 0xE0) == 0xC0) { // 2-byte sequence (110xxxxx 10xxxxxx)
-            if (i + 1 >= utf8_str.length() || (utf8_str[i+1] & 0xC0) != 0x80) { // Check for incomplete or invalid continuation
-                code_point = 0xFFFD; bytes_to_read = 1;
-            } else {
-                code_point = ((c & 0x1F) << 6) | (utf8_str[i+1] & 0x3F);
-                bytes_to_read = 2;
+int convert_hor2ver(size_t characters_per_column)
+/*
+ *
+ * params: size_t characters_per_column        每列的字数
+ * return   是否转化成功
+ *
+ * 该函数实现将一个连续的string转化成一个2d vector
+ */
+{
+
+
+}
+
+
+int DocConvert::transform_1dto2d(size_t characters_per_row)
+/*
+ *
+ * params: size_t characters_per_row   每行的字符数
+ *
+ * 该函数实现将一个连续的字符串转成二维向量，其中每行的字数可控
+ */ {
+    // 从字符串中每次取出一定字数作为一行（一个字符串），遇到全角空格就把该行剩余部分全部用全角空格填充,然后处理下一段
+
+
+    const size_t PER_CHARACTER_LEN = 3; // 每个UTF-8字符3字节
+    const std::string FULL_WIDTH_SPACE = "\xE3\x80\x80"; // 全角空格
+    const std::string DOUBLE_FULL_SPACE = FULL_WIDTH_SPACE + FULL_WIDTH_SPACE;
+
+    size_t total_len = this->raw_content.size();
+    size_t current_pos = 6;      // 当前的字符索引（单位char）
+
+    std::vector<std::string> current_paragraph;   // 存储当前段落的所有行
+    _2d_content.clear();
+
+    while (current_pos < total_len-1) {
+        // std::cout << "start a new loop at " << current_pos << std::endl;
+        std::vector<std::string> current_line_content; // 存储当前行的字符
+        size_t current_line_count = 0; // 当前行的字符数
+        bool is_para_break = false; // 标志位，指示是否检测到段落结束符
+
+        // 循环构建一行
+        while (current_line_count < characters_per_row && current_pos + PER_CHARACTER_LEN <= total_len) {
+
+            // 判断是否检测到段落结束标志（2个连续的全角空格）
+            if (current_pos + 2 * PER_CHARACTER_LEN <= total_len &&
+                this->raw_content.substr(current_pos, 2 * PER_CHARACTER_LEN) == DOUBLE_FULL_SPACE)
+                {
+                is_para_break = true; // 设置标志
+                break; // 退出内层循环，表示本行构建结束，需要处理段落结束
             }
-        } else if ((c & 0xF0) == 0xE0) { // 3-byte sequence (1110xxxx 10xxxxxx 10xxxxxx)
-            if (i + 2 >= utf8_str.length() || (utf8_str[i+1] & 0xC0) != 0x80 || (utf8_str[i+2] & 0xC0) != 0x80) {
-                code_point = 0xFFFD; bytes_to_read = 1;
-            } else {
-                code_point = ((c & 0x0F) << 12) | ((utf8_str[i+1] & 0x3F) << 6) | (utf8_str[i+2] & 0x3F);
-                bytes_to_read = 3;
-            }
-        } else if ((c & 0xF8) == 0xF0) { // 4-byte sequence (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
-            if (i + 3 >= utf8_str.length() || (utf8_str[i+1] & 0xC0) != 0x80 || (utf8_str[i+2] & 0xC0) != 0x80 || (utf8_str[i+3] & 0xC0) != 0x80) {
-                code_point = 0xFFFD; bytes_to_read = 1;
-            } else {
-                code_point = ((c & 0x07) << 18) | ((utf8_str[i+1] & 0x3F) << 12) | ((utf8_str[i+2] & 0x3F) << 6) | (utf8_str[i+3] & 0x3F);
-                bytes_to_read = 4;
-            }
-        } else {
-            // Invalid UTF-8 starting byte. Treat as a single byte error.
-            code_point = 0xFFFD; // Unicode Replacement Character
-            bytes_to_read = 1;
+
+            // 处理普通字符
+            std::string ch = this->raw_content.substr(current_pos, PER_CHARACTER_LEN);
+            current_line_content.push_back(ch);
+            current_pos += PER_CHARACTER_LEN;
+            current_line_count++;
         }
 
-        unicode_chars.push_back(code_point);
-        i += bytes_to_read;
-    }
-    return unicode_chars;
-}
+        // std::cout << "current line has break \n"  << std::endl;
+        for (auto t : current_line_content) {
+            std::cout  << t ;
+        }
+        std::cout << std::endl;
 
-// 将单个 Unicode 码点编码为 UTF-8 字符串
-std::string encode_utf8(char32_t unicode_char) {
-    std::string utf8_bytes;
-    if (unicode_char < 0x80) { // 1-byte sequence (0xxxxxxx)
-        utf8_bytes += static_cast<char>(unicode_char);
-    } else if (unicode_char < 0x800) { // 2-byte sequence (110xxxxx 10xxxxxx)
-        utf8_bytes += static_cast<char>(0xC0 | (unicode_char >> 6));
-        utf8_bytes += static_cast<char>(0x80 | (unicode_char & 0x3F));
-    } else if (unicode_char < 0x10000) { // 3-byte sequence (1110xxxx 10xxxxxx 10xxxxxx)
-        utf8_bytes += static_cast<char>(0xE0 | (unicode_char >> 12));
-        utf8_bytes += static_cast<char>(0x80 | ((unicode_char >> 6) & 0x3F));
-        utf8_bytes += static_cast<char>(0x80 | (unicode_char & 0x3F));
-    } else if (unicode_char < 0x110000) { // 4-byte sequence (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
-        utf8_bytes += static_cast<char>(0xF0 | (unicode_char >> 18));
-        utf8_bytes += static_cast<char>(0x80 | ((unicode_char >> 12) & 0x3F));
-        utf8_bytes += static_cast<char>(0x80 | ((unicode_char >> 6) & 0x3F));
-        utf8_bytes += static_cast<char>(0x80 | (unicode_char & 0x3F));
+        // 内层循环结束，可能是因为一行已满，或raw_content已读完，或遇到了段落结束标记
+
+        // 检测到结束标志，在段落最后一行后面填充全角空格
+        if (is_para_break) {
+            // std::cout << "has detected paragraph break signal" << std::endl;
+            // 1. 填充当前行（如果未满）
+            while (current_line_count < characters_per_row) {
+                current_line_content .push_back(FULL_WIDTH_SPACE);
+                current_line_count++;
+            }
+            // 2. 将填充后的当前行添加到当前段落
+            if (!current_line_content.empty()) {
+                this->_2d_content.push_back(current_line_content);
+            }
+
+
+            // 4. 重置，为下一个段落做准备
+            current_paragraph.clear();
+            is_para_break = false;
+
+            // 5. 跳过两个全角空格的长度
+            current_pos += 2 * PER_CHARACTER_LEN;
+
+            // 开始处理新段落
+            continue;
+        }
+
+        // 没有检测到段落结束标记，可能是当前行已满或者到达文本最后一行
+
+        // 处理文本最后一行
+        while (current_line_count < characters_per_row) {
+            current_line_content.push_back(FULL_WIDTH_SPACE);
+            current_line_count++;
+        }
+
+        // 将填充完整的行添加
+        if (!current_line_content.empty()) {
+            this->_2d_content.push_back(current_line_content);
+        }
+
+        std::cout << "current line size: " << current_line_content.size() << '\n' << std::endl;
+    }
+
+    std::cout << "transformed successfully \n " << this->_2d_content.size() << ' ' << this->_2d_content.back().size() << ',' << std::endl;
+    for (const auto& t : this->_2d_content) {
+        for (const auto& i :t ) {
+            std::cout << i;
+        }
+        std::cout << std::endl;
+    }
+
+    std::string filename = "D:\\programs\\cpp\\program_class\\data\\res\\test05_temp.txt";
+    std::ofstream output_file(filename);
+    // 检查文件是否成功打开
+    if (output_file.is_open()) {
+        // 遍历外层 vector，每一项代表一行
+        for (const std::vector<std::string>& line_parts : this->_2d_content) {
+            // 将内层 vector<string> 中的所有部分拼接成一个完整的行
+            std::string full_line = "";
+            for (const std::string& part : line_parts) {
+                full_line += part;
+            }
+
+            // 也可以使用 std::accumulate 来拼接字符串 (需要 <numeric> 头文件)
+            // std::string full_line = std::accumulate(line_parts.begin(), line_parts.end(), std::string(""));
+
+            // 将拼接好的完整行写入文件，并添加换行符
+            output_file << full_line << std::endl;
+        }
+        // 关闭文件流
+        output_file.close();
+        std::cout << "文本已成功写入文件：" << filename << std::endl;
     } else {
-        // Invalid Unicode code point, use replacement character
-        utf8_bytes = "\xEF\xBF\xBD"; // U+FFFD in UTF-8
-    }
-    return utf8_bytes;
-}
-
-// DocConvert 类
-class DocConvert {
-public:
-    // 构造函数：将输入的 UTF-8 字符串解码并存储为 Unicode 码点序列。
-    DocConvert(const std::string& content_utf8) {
-        document_content_unicode = decode_utf8(content_utf8);
+        std::cerr << "无法打开文件进行写入：" << filename << std::endl;
     }
 
-    // 将存储的文档内容转换为竖排、自右向左的格式。
+
+        // 返回段落的数量
+        return static_cast<int>(this->_2d_content.size());
+    }
+
+
+
+
+
+
+
+int DocConvert::transpose_matrix(void)
+/*
+ *
+ * 该函数实现对一个矩阵做”转置“运算，其中转置是 (i,j) -> (n-j-1,i)
+ */ {
+
+
+    size_t rows = this->_2d_content.size();  // 原矩阵行数
+    size_t cols = this->_2d_content[0].size();   // 原矩阵列数
+    if (rows==0 || cols==0) {
+        return -1;
+    }
+
+    std::cout << "origin matrix rows, cols: " << rows << ", " << cols << std::endl;
+    std::vector<std::vector<std::string>> transposed_matrix(cols, std::vector<std::string>(rows));
+    std::cout << "transposed_matrix size:" << transposed_matrix.size() << ',' << transposed_matrix[0].size() << std::endl;
+    for (size_t i = 0; i < cols; ++i) {
+        for (size_t j = 0; j < rows; ++j) {
+            transposed_matrix[i][j] = this->_2d_content[rows-j-1][i];
+            // transposed_matrix[i][j] = this->_2d_content[j][cols - 1 - i];
+        }
+    }
+
     //
-    // chars_per_column: 每列的 **Unicode 字符** 数量。
-    // output_filepath: 转换结果保存到的文件路径。
-    // 返回值: 如果转换和保存成功，则返回 true；否则返回 false。
-    bool convert_hor2ver(size_t chars_per_column, const std::string& output_filepath) {
-        // 1. 输入验证
-        if (chars_per_column == 0) {
-            std::cerr << "错误：每列字数不能为零。" << std::endl;
-            return false;
-        }
+    // std::cout << "transposed matrix: " << std::endl;
+    // for (const auto& row : transposed_matrix) {
+    //     for (const auto& col : row) {
+    //         std::cout << col ;
+    //     }
+    // }
+    std::cout << std::endl;
 
-        // 2. 打开输出文件
-        // 建议以二进制模式打开，以避免操作系统对换行符的自动转换。
-        // std::ios::binary 确保字节原样写入，这对于 UTF-8 很重要。
-        std::ofstream outfile(output_filepath, std::ios::out | std::ios::binary);
-        if (!outfile.is_open()) {
-            std::cerr << "错误：无法打开输出文件：" << output_filepath << std::endl;
-            return false;
-        }
+    this->transformed_content = transposed_matrix;
 
-        // 处理空内容的情况
-        if (document_content_unicode.empty()) {
-            outfile.close();
-            return true; // 空内容，成功输出空文件
-        }
-
-        // 3. 计算维度
-        size_t total_chars = document_content_unicode.size(); // Unicode字符总数
-        // 计算列数（向上取整）
-        size_t num_columns = (total_chars + chars_per_column - 1) / chars_per_column;
-        // num_rows 在此上下文中即为 chars_per_column，它定义了每列的固定高度。
-
-        // 4. 存储列数据
-        // column_data 的每个元素将代表一列 Unicode 码点序列。
-        std::vector<std::vector<char32_t>> column_data(num_columns);
-
-        // 从原始内容中填充 column_data
-        for (size_t i = 0; i < total_chars; ++i) {
-            size_t col_idx = i / chars_per_column;
-            column_data[col_idx].push_back(document_content_unicode[i]);
-        }
-
-        // 5. 打印到文件（自右向左，每列从上到下）
-        char32_t space_char = U' '; // Unicode 空格字符
-
-        for (size_t row = 0; row < chars_per_column; ++row) { // 遍历每一“行”
-            // 从右到左遍历列
-            for (size_t col_rev_idx = 0; col_rev_idx < num_columns; ++col_rev_idx) {
-                size_t col_actual_idx = num_columns - 1 - col_rev_idx; // 获取实际列索引（最右边的列首先被处理）
-
-                // 检查当前行索引是否在当前列内容的范围内
-                if (row < column_data[col_actual_idx].size()) {
-                    outfile << encode_utf8(column_data[col_actual_idx][row]);
-                } else {
-                    // 如果当前列比当前行短，则打印一个空格进行填充
-                    outfile << encode_utf8(space_char);
-                }
-
-                // 在列之间添加一个空格作为分隔符，但最后一列之后不加。
-                // 这样在普通文本编辑器中阅读时，不同逻辑列的字符会有区分。
-                if (col_rev_idx < num_columns - 1) {
-                     outfile << encode_utf8(U' ');
-                }
+    std::string filename = "D:\\programs\\cpp\\program_class\\data\\res\\test05_final.txt";
+    std::ofstream output_file(filename);
+    // 检查文件是否成功打开
+    if (output_file.is_open()) {
+        // 遍历外层 vector，每一项代表一行
+        for (const std::vector<std::string>& line_parts : transposed_matrix) {
+            // 将内层 vector<string> 中的所有部分拼接成一个完整的行
+            std::string full_line = "";
+            for (const std::string& part : line_parts) {
+                full_line += part;
             }
-            outfile << '\n'; // 每逻辑“行”结束后换行
+
+            // 也可以使用 std::accumulate 来拼接字符串 (需要 <numeric> 头文件)
+            // std::string full_line = std::accumulate(line_parts.begin(), line_parts.end(), std::string(""));
+
+            // 将拼接好的完整行写入文件，并添加换行符
+            output_file << full_line << std::endl;
         }
-
-        outfile.close();
-        return true;
-    }
-
-private:
-    std::vector<char32_t> document_content_unicode; // 存储解码后的 Unicode 码点
-};
-
-// 辅助函数：从文件中读取内容到字符串 (UTF-8)
-std::string read_file_to_string(const std::string& filepath) {
-    // 以二进制模式打开，避免操作系统对文件内容的修改
-    std::ifstream infile(filepath, std::ios::in | std::ios::binary);
-    if (!infile.is_open()) {
-        std::cerr << "错误：无法打开输入文件：" << filepath << std::endl;
-        return "";
-    }
-    // 使用流迭代器高效读取文件内容
-    std::string content((std::istreambuf_iterator<char>(infile)), std::istreambuf_iterator<char>());
-    infile.close();
-    return content;
-}
-
-int main() {
-
-    system("chcp 65001");
-
-
-    std::string input_content_from_user = "你好世界，这是一个测试文本，用于演示如何将横向文本转换为竖排、自右向左的格式。\n希望你喜欢这个例子！\n如果文本很长，也会正确处理。\n第二行测试。\n第三行也来一些内容。\n结束。";
-    // std::string input_content_from_user = "你好世界";
-
-    // 创建 DocConvert 类的实例
-    DocConvert converter(input_content_from_user);
-
-    size_t chars_per_column = 2;
-
-
-    std::string output_filename = "D:\\programs\\cpp\\program_class\\data\\res\\test111.txt";
-    if (converter.convert_hor2ver(chars_per_column, output_filename)) {
-        std::cout << "转换成功！结果已保存到 " << output_filename << std::endl;
-        std::cout << "请确保使用支持 UTF-8 编码的文本编辑器（如 Notepad++, VS Code, Sublime Text, Linux/macOS 默认编辑器）打开文件以正确显示。" << std::endl;
+        // 关闭文件流
+        output_file.close();
+        std::cout << "文本已成功写入文件：" << filename << std::endl;
     } else {
-        std::cout << "转换失败。" << std::endl;
+        std::cerr << "无法打开文件进行写入：" << filename << std::endl;
     }
 
     return 0;
+
+}
+
+
+
+void DocConvert::remove_newline(void)
+/*
+ *
+ * 该函数实现将字符串的所有 \n 全部去除
+ *
+ */ {
+    auto new_end = std::remove(this->raw_content.begin(), this->raw_content.end(), '\n');
+    // 截断字符串，移除末尾的全角空格
+    this->raw_content.erase(new_end, this->raw_content.end());
+}
+
+
+void DocConvert::printf_raw_content(void) {
+    std::cout << this->raw_content << std::endl;
+    std::cout << "after remove ,size: " << this->raw_content.size() << std::endl;
 }

@@ -29,5 +29,7 @@ add_executable(test_string
 add_executable(DocCount Algorithm/src/DocCount.cpp)
 
 # 测试转化功能
-add_executable(DocConvert
-        Algorithm/src/DocConvert.cpp)
+add_executable(only_convert_h2v
+        test/only_convert_hor2ver.cpp
+        Algorithm/src/DocConvert.cpp
+        Algorithm/src/FileHandle.cpp)
