@@ -99,41 +99,29 @@ int main() {
     system("chcp 65001");
 
 
-    std::string input_path = "../data/res/test05_process.txt";
-    std::string output_path = "../data/res/test05_final.txt";
-    std::string temp_path = "../data/res/test05_temp.txt";
+    const std::string input_path = "../data/res/test01_process.txt";
+    const std::string output_path = "../data/res/test01_final.txt";
+    const std::string temp_path = "../data/res/test01_temp.txt";
 
     FileHandle input_handle = FileHandle(input_path);
-    FileHandle output_handle = FileHandle(output_path);
-    FileHandle temp_handle = FileHandle(temp_path);
+
 
     std::string input_content;
      bool err = input_handle.read_file(input_content);
     if (not err) {
-        std::cerr << "cannot open and read" << input_content << std::endl;
+        std::cerr << "cannot open and read" << input_path << std::endl;
     }
-    std::cout << input_content.size() << std::endl;
-    std::cout << input_content << std::endl;
+    std::cout << "raw content size: " << input_content.size() << std::endl;
+    // std::cout << input_content << std::endl;
 
-    DocConvert final_handle = DocConvert(input_content);
+
+    DocConvert final_handle = DocConvert(input_content,temp_path,output_path);
     size_t per_row = 14;
-    // 预处理，删除\n
-    final_handle.remove_newline();
-    final_handle.printf_raw_content();
 
-    // 将连续字符串转为2d向量
-    int final_size = final_handle.transform_1dto2d(per_row);
-    if (final_size == 0) {
-        std::cerr << "cannot do transformed" << std::endl;
-    }
-    else {
-        std::cout << "final_size:" << final_size << std::endl;
-
-        int e = final_handle.transpose_matrix();
-        if (not e) {
-            std::cerr << "successfully transpose" << std::endl;
-            // output_handle.write_file();
-        }
+    int no_err = final_handle.convert_hor2ver(per_row);
+    if (no_err != 0) {
+        std::cerr << "except at somewhere" << std::endl;
+        return 1;
     }
     return 0;
 }

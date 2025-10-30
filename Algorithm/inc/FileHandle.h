@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <vector>
+
 
 class FileHandle {
 public:
@@ -15,10 +17,11 @@ public:
     // ~FileHandle();
     bool read_file(std::string& content) const;   // 从文件中读取字符，存储在string类对象里
     bool write_file(const std::string& content) const;  // 将string类对象里的内容写入文件中
+    bool write_file(const std::vector<std::vector<std::string>>& content) const;
 
 
 private:
-    const std::string &_file_path;   // 文件相对路径
+    const std::string &file_path;   // 文件相对路径
 
 };
 

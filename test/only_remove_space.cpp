@@ -9,9 +9,9 @@
 
 int main() {
     system("chcp 65001");
-    FileHandle raw_file("../data/raw/test05.txt");
-    FileHandle convert_file("../data/res/test05_convert.txt");
-    FileHandle processed_file("../data/res/test05_process.txt");
+    FileHandle raw_file("../data/raw/test02.txt");
+    FileHandle convert_file("../data/res/test02_convert.txt");
+    FileHandle processed_file("../data/res/test02_process.txt");
 
     std::string raw_content;
     bool no_err = raw_file.read_file(raw_content);

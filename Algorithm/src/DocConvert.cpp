@@ -5,10 +5,19 @@
 #include <algorithm>
 #include <fstream> // 用于文件操作
 
-DocConvert::DocConvert(const std::string& content):raw_content(content){}
+DocConvert::DocConvert(
+    const std::string& content,
+    const std::string& temp_filename,
+    const std::string& final_filename):
+    raw_content(content), _2d_filename(temp_filename),
+    transformed_filename(final_filename),
+    _2d_file_handle(_2d_filename),
+    transformed_file_handle(transformed_filename){
+
+}
 
 
-int convert_hor2ver(size_t characters_per_column)
+int DocConvert::convert_hor2ver(size_t characters_per_column)
 /*
  *
  * params: size_t characters_per_column        每列的字数
@@ -17,8 +26,48 @@ int convert_hor2ver(size_t characters_per_column)
  * 该函数实现将一个连续的string转化成一个2d vector
  */
 {
+    // 删除\n
+    this->remove_newline();
+
+    // 将连续的字符转化为二维向量
+    std::cout <<  "after combine into a whole string ,size is " << this->raw_content.size() << std::endl;
+    int out_size = this->transform_1dto2d( characters_per_column);
+    if (out_size == 0) {
+        std::cerr << "2d vector has no size "<< std::endl;
+        return -1;
+    }
+    std::cout << "sucessfully to do transform from 1d to 2d" << std::endl;
 
 
+    // 做转置运算
+    int no_err = this->transpose_matrix();
+    if (no_err != 0) {
+        std::cerr << "fail to do  transpose " << std::endl;
+        return -1;
+    }
+    std::cout << "sucessfully to do transposition " << std::endl;
+
+
+    // 在横行每2个字符之间添加空格
+    for (std::vector<std::string> &line:this->transformed_content) {
+        std::vector<std::string> new_line = this->add_space(line);
+
+        this->final_content.push_back(new_line);
+        // 打印，测试
+        // for (const auto& t:new_line ) {
+        //     std::cout << t ;
+        // }
+        // std::cout << std::endl;
+
+    }
+    std::cout << "final matrix size: " << this->final_content.size() << ',' << this->final_content[0].size() << std::endl;
+
+    // 保存
+    no_err = this->save_into_txt();
+    if (no_err != 0) {
+        std::cerr << "Error while saving the output file." << std::endl;
+    }
+    return 0;
 }
 
 
@@ -38,11 +87,17 @@ int DocConvert::transform_1dto2d(size_t characters_per_row)
 
     size_t total_len = this->raw_content.size();
     size_t current_pos = 6;      // 当前的字符索引（单位char）
+    size_t last_pos = (size_t)-1;
 
     std::vector<std::string> current_paragraph;   // 存储当前段落的所有行
     _2d_content.clear();
 
-    while (current_pos < total_len-1) {
+    while (current_pos + PER_CHARACTER_LEN <= total_len) {
+        if (current_pos == last_pos) {
+            std::cerr << "stuck at " << current_pos << std::endl;
+            break; // 防止死循环
+        }
+        last_pos = current_pos;
         // std::cout << "start a new loop at " << current_pos << std::endl;
         std::vector<std::string> current_line_content; // 存储当前行的字符
         size_t current_line_count = 0; // 当前行的字符数
@@ -51,11 +106,18 @@ int DocConvert::transform_1dto2d(size_t characters_per_row)
         // 循环构建一行
         while (current_line_count < characters_per_row && current_pos + PER_CHARACTER_LEN <= total_len) {
 
+            // 确保每次只步进3个字节
+            if (current_pos % PER_CHARACTER_LEN != 0) {
+                std::cerr << "UTF-8 misalignment at " << current_pos << std::endl;
+                current_pos = (current_pos / PER_CHARACTER_LEN + 1) * PER_CHARACTER_LEN;
+            }
+
             // 判断是否检测到段落结束标志（2个连续的全角空格）
             if (current_pos + 2 * PER_CHARACTER_LEN <= total_len &&
                 this->raw_content.substr(current_pos, 2 * PER_CHARACTER_LEN) == DOUBLE_FULL_SPACE)
                 {
                 is_para_break = true; // 设置标志
+                current_pos += 2 * PER_CHARACTER_LEN; // 跳过两个全角空格
                 break; // 退出内层循环，表示本行构建结束，需要处理段落结束
             }
 
@@ -66,87 +128,49 @@ int DocConvert::transform_1dto2d(size_t characters_per_row)
             current_line_count++;
         }
 
-        // std::cout << "current line has break \n"  << std::endl;
-        for (auto t : current_line_content) {
-            std::cout  << t ;
-        }
-        std::cout << std::endl;
-
-        // 内层循环结束，可能是因为一行已满，或raw_content已读完，或遇到了段落结束标记
-
-        // 检测到结束标志，在段落最后一行后面填充全角空格
-        if (is_para_break) {
-            // std::cout << "has detected paragraph break signal" << std::endl;
-            // 1. 填充当前行（如果未满）
-            while (current_line_count < characters_per_row) {
-                current_line_content .push_back(FULL_WIDTH_SPACE);
-                current_line_count++;
-            }
-            // 2. 将填充后的当前行添加到当前段落
-            if (!current_line_content.empty()) {
-                this->_2d_content.push_back(current_line_content);
-            }
-
-
-            // 4. 重置，为下一个段落做准备
-            current_paragraph.clear();
-            is_para_break = false;
-
-            // 5. 跳过两个全角空格的长度
-            current_pos += 2 * PER_CHARACTER_LEN;
-
-            // 开始处理新段落
-            continue;
-        }
-
-        // 没有检测到段落结束标记，可能是当前行已满或者到达文本最后一行
-
-        // 处理文本最后一行
+        // 填充行尾
         while (current_line_count < characters_per_row) {
             current_line_content.push_back(FULL_WIDTH_SPACE);
             current_line_count++;
         }
 
-        // 将填充完整的行添加
+        // 将填充完整的行添加到矩阵中
         if (!current_line_content.empty()) {
             this->_2d_content.push_back(current_line_content);
         }
 
-        std::cout << "current line size: " << current_line_content.size() << '\n' << std::endl;
-    }
+        // std::cout << "current line has break \n"  << std::endl;
 
-    std::cout << "transformed successfully \n " << this->_2d_content.size() << ' ' << this->_2d_content.back().size() << ',' << std::endl;
-    for (const auto& t : this->_2d_content) {
-        for (const auto& i :t ) {
-            std::cout << i;
+        // 打印当前行
+        // for (auto t : current_line_content) {
+        //     std::cout  << t ;
+        // }
+        // std::cout << std::endl;
+
+        // 内层循环结束，可能是因为一行已满，或raw_content已读完，或遇到了段落结束标记
+
+        // 检测到结束标志，在段落最后一行后面填充全角空格
+        if (is_para_break) {
+            // 开始处理新段落
+            continue;
         }
-        std::cout << std::endl;
+
+
+
+
+        // std::cout << "current line character counter:" << current_line_count << std::endl;
+
+        // std::cout << "current line size: " << current_line_content.size() << std::endl;
     }
 
-    std::string filename = "D:\\programs\\cpp\\program_class\\data\\res\\test05_temp.txt";
-    std::ofstream output_file(filename);
-    // 检查文件是否成功打开
-    if (output_file.is_open()) {
-        // 遍历外层 vector，每一项代表一行
-        for (const std::vector<std::string>& line_parts : this->_2d_content) {
-            // 将内层 vector<string> 中的所有部分拼接成一个完整的行
-            std::string full_line = "";
-            for (const std::string& part : line_parts) {
-                full_line += part;
-            }
+    // std::cout << "transformed successfully \n " << this->_2d_content.size() << ' ' << this->_2d_content.back().size() << ',' << std::endl;
+    // for (const auto& t : this->_2d_content) {
+    //     for (const auto& i :t ) {
+    //         std::cout << i;
+    //     }
+    //     std::cout << std::endl;
+    // }
 
-            // 也可以使用 std::accumulate 来拼接字符串 (需要 <numeric> 头文件)
-            // std::string full_line = std::accumulate(line_parts.begin(), line_parts.end(), std::string(""));
-
-            // 将拼接好的完整行写入文件，并添加换行符
-            output_file << full_line << std::endl;
-        }
-        // 关闭文件流
-        output_file.close();
-        std::cout << "文本已成功写入文件：" << filename << std::endl;
-    } else {
-        std::cerr << "无法打开文件进行写入：" << filename << std::endl;
-    }
 
 
         // 返回段落的数量
@@ -172,9 +196,9 @@ int DocConvert::transpose_matrix(void)
         return -1;
     }
 
-    std::cout << "origin matrix rows, cols: " << rows << ", " << cols << std::endl;
+    // std::cout << "origin matrix rows, cols: " << rows << ", " << cols << std::endl;
     std::vector<std::vector<std::string>> transposed_matrix(cols, std::vector<std::string>(rows));
-    std::cout << "transposed_matrix size:" << transposed_matrix.size() << ',' << transposed_matrix[0].size() << std::endl;
+    // std::cout << "transposed_matrix size:" << transposed_matrix.size() << ',' << transposed_matrix[0].size() << std::endl;
     for (size_t i = 0; i < cols; ++i) {
         for (size_t j = 0; j < rows; ++j) {
             transposed_matrix[i][j] = this->_2d_content[rows-j-1][i];
@@ -189,34 +213,9 @@ int DocConvert::transpose_matrix(void)
     //         std::cout << col ;
     //     }
     // }
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
     this->transformed_content = transposed_matrix;
-
-    std::string filename = "D:\\programs\\cpp\\program_class\\data\\res\\test05_final.txt";
-    std::ofstream output_file(filename);
-    // 检查文件是否成功打开
-    if (output_file.is_open()) {
-        // 遍历外层 vector，每一项代表一行
-        for (const std::vector<std::string>& line_parts : transposed_matrix) {
-            // 将内层 vector<string> 中的所有部分拼接成一个完整的行
-            std::string full_line = "";
-            for (const std::string& part : line_parts) {
-                full_line += part;
-            }
-
-            // 也可以使用 std::accumulate 来拼接字符串 (需要 <numeric> 头文件)
-            // std::string full_line = std::accumulate(line_parts.begin(), line_parts.end(), std::string(""));
-
-            // 将拼接好的完整行写入文件，并添加换行符
-            output_file << full_line << std::endl;
-        }
-        // 关闭文件流
-        output_file.close();
-        std::cout << "文本已成功写入文件：" << filename << std::endl;
-    } else {
-        std::cerr << "无法打开文件进行写入：" << filename << std::endl;
-    }
 
     return 0;
 
@@ -231,12 +230,57 @@ void DocConvert::remove_newline(void)
  *
  */ {
     auto new_end = std::remove(this->raw_content.begin(), this->raw_content.end(), '\n');
-    // 截断字符串，移除末尾的全角空格
+    // 截断字符串，移除末尾的 \n
     this->raw_content.erase(new_end, this->raw_content.end());
+    std::cout << "after remove \\n, raw_content size: "<< this->raw_content.size() << std::endl;
+
 }
 
 
-void DocConvert::printf_raw_content(void) {
-    std::cout << this->raw_content << std::endl;
-    std::cout << "after remove ,size: " << this->raw_content.size() << std::endl;
+
+
+int DocConvert::save_into_txt(void)
+/*
+ *
+ * 该函数实现将2个二维向量都保存到文本中
+ *
+ */
+{
+    bool no_err = this->_2d_file_handle.write_file(this->_2d_content);
+    if (no_err==false) {
+        return -1;
+    }
+    no_err = this->transformed_file_handle.write_file(this->final_content);
+    if (no_err==false) {
+        return -1;
+    }
+    return 0;
+
+}
+
+
+std::vector<std::string> DocConvert::add_space(std::vector<std::string> &line)
+/*
+ *
+ * params: std::vector<std::string> &line    存储一行文本的一维向量，每个元素都是一个字符（string类型）
+ */
+{
+    if (line.size() <= 1) {
+        return line;
+    }
+
+    std::vector<std::string> result;
+    result.reserve(2 * line.size() - 1); // 预留足够空间，避免多次扩容
+
+    // 迭代原容器，在元素间插入全角空格
+    for (size_t i = 0; i < line.size(); ++i) {
+        result.push_back(line[i]);
+        // 最后一个元素后不插入空格
+        if (i != line.size() - 1) {
+            result.push_back("　"); // 全角空格
+        }
+    }
+
+    return result;
+
 }
