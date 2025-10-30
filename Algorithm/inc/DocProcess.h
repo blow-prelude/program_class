@@ -19,7 +19,7 @@ public:
     std::string convert_punctuation(const std::string& content);     // 标点转换函数
 
     std::string process_document(const std::string& raw_content);
-    std::string process_document(const std::string& raw_content,size_t row_length);
+    // std::string process_document(const std::string& raw_content,size_t row_length);
 
 
 
