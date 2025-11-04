@@ -7,6 +7,7 @@
 
 int main() {
     system("chcp 65001");
+
     const std::string root_path = "D:/programs/cpp/program_class/";   // 根路径
     const std::string test = "test05";
     const std::string raw_filename = root_path + "data/raw/" + test + ".txt";
@@ -18,7 +19,10 @@ int main() {
     const std::string final_filename = root_path + "data/res/" + test + "_final.txt";
 
 
-    size_t per_col = 16;   // 转化排版后每列的字数
+    size_t per_col;   // 转化排版后每列的字数
+    size_t total_character = 200;
+
+
 
     // 读取原始文本
     FileHandle raw_handle(raw_filename);
@@ -98,6 +102,21 @@ int main() {
 
 
     // 转化文本排版并保存
+    bool is_fit = false;
+    while (!is_fit) {
+        std::cout << "please enter characters of per col: " << std::endl;
+        std::cin >> per_col;
+        // 检查字数是否合格
+        if (per_col <= 0) {
+            std::cerr << "please enter a number which is more than 0" << std::endl;
+            continue;
+        }
+        if (per_col >= total_character) {
+            std::cerr << "please enter a number which is less than whole content character" << std::endl;
+            continue;
+        }
+        is_fit = true;
+    }
     auto doc_convert = DocConvert(formated_content,_2d_filename,final_filename);
     int no_err = doc_convert.convert_hor2ver(per_col);
     if (no_err != 0) {

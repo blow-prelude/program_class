@@ -75,7 +75,7 @@ void DocProcess::format_para(
     // 首行缩进
     // 先统一删除段落开头的符号，然后加上2个全角空格
     std::string first_para_line = this->remove_head_space(para_lines[0]);
-    std::cout << "first line of paragraph:" << first_para_line << std::endl;
+    // std::cout << "first line of paragraph:" << first_para_line << std::endl;
     // 如果段落只有一行，直接结束
     if (para_lines.size() == 1) {
         formatted_para_lines.push_back(FULL_SPACE + FULL_SPACE + first_para_line);

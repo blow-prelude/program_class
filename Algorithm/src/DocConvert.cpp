@@ -30,7 +30,7 @@ int DocConvert::convert_hor2ver(size_t characters_per_column)
     this->remove_newline();
 
     // 将连续的字符转化为二维向量
-    std::cout <<  "after combine into a whole string ,size is " << this->raw_content.size() << std::endl;
+    // std::cout <<  "after combine into a whole string ,size is " << this->raw_content.size() << std::endl;
     int out_size = this->transform_1dto2d( characters_per_column);
     if (out_size == 0) {
         std::cerr << "2d vector has no size "<< std::endl;
@@ -60,7 +60,7 @@ int DocConvert::convert_hor2ver(size_t characters_per_column)
         // std::cout << std::endl;
 
     }
-    std::cout << "final matrix size: " << this->final_content.size() << ',' << this->final_content[0].size() << std::endl;
+    // std::cout << "final matrix size: " << this->final_content.size() << ',' << this->final_content[0].size() << std::endl;
 
     // 保存
     no_err = this->save_into_txt();
