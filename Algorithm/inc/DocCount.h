@@ -16,7 +16,7 @@ int count_paragraphs_in_file(FILE* fp);    // 计算段落数
 int count_sentence_in_file(FILE* fp);        // 统计UTF-8文件中汉语句子数
 int count_total_in_file(FILE* fp);   // 统计总字数
 int isCnChar(unsigned char c1, unsigned char c2, unsigned char c3);     // 判断3字节是否为UTF-8汉语字符/标点
-void countCnChar(unsigned char c1, unsigned char c2, unsigned char c3);    // 统计UTF-8字符
+void countCnChar( unsigned char c1,unsigned char c2,unsigned char c3);    // 统计UTF-8字符
 int statFromFile(const char* filename);      // 从UTF-8编码文件读取并统计
 int compareChar(const void* a, const void* b);    // 排序比较函数
 void printSortedResult();     // 打印排序后的统计结果
@@ -25,10 +25,12 @@ int save_all_results(const char* input_filename, const char* output_filename, in
 
 #define MAX_CHAR 10000    // 最大支持10000个不同字符
 
-// 结构体：存储UTF-8字符（3字节）及出现次数
+
+// 字符统计结构体
 typedef struct {
-    unsigned char ch[3];  // UTF-8汉语字符/标点占3字节
+    unsigned char ch[3];  // UTF-8字符的3个字节
     int count;            // 出现次数
+    wchar_t wch;          // 转换后的宽字符（用于字典排序）
 } CharStat;
 
 #endif //DOCCOUNT_H

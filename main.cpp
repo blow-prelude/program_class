@@ -9,7 +9,7 @@ int main() {
     system("chcp 65001");
 
     const std::string root_path = "D:/programs/cpp/program_class/";   // 根路径
-    const std::string test = "test05";
+    const std::string test = "test01";
     const std::string raw_filename = root_path + "data/raw/" + test + ".txt";
     const std::string change_filename = root_path + "data/res/" + test + "_change.txt";
     const std::string format_filename = root_path + "data/res/"+ test + "_format.txt";

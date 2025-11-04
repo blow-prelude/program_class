@@ -8,6 +8,12 @@
 
 #include "../inc/DocCount.h"
 
+
+
+CharStat statList[MAX_CHAR] = { 0 };
+int statLen = 0;
+
+
 // 读取并显示文件内容
 int read_chinese_txt(const char* filename) {
 	FILE* file = fopen(filename, "rb");
@@ -91,7 +97,7 @@ int count_paragraphs_in_file(FILE* fp) {
 }
 
 // 统计汉语句子数
-int count_sentence_i`n_file(FILE* fp) {
+int count_sentence_in_file(FILE* fp) {
 	if (fp == NULL || feof(fp) || ferror(fp)) return 0;
 	int sentence_count = 0;
 	int ch1, ch2, ch3;
@@ -156,19 +162,12 @@ int count_total_in_file(FILE* fp) {
 	return total_count;
 }
 
-// 字符统计结构体
-typedef struct {
-	unsigned char ch[3];  // UTF-8字符的3个字节
-	int count;            // 出现次数
-	wchar_t wch;          // 转换后的宽字符（用于字典排序）
-} CharStat;
 
-#define MAX_CHAR 10000    // 最大支持的不同字符数
-CharStat statList[MAX_CHAR] = { 0 };
-int statLen = 0;
+
+
 
 // UTF-8转宽字符
-wchar_t utf8_to_wchar(unsigned char c1, unsigned char c2, unsigned char c3) {
+wchar_t utf8_to_wchar( char c1,  char c2,  char c3) {
 	char utf8_str[4] = { c1, c2, c3, '\0' };
 	wchar_t wstr[2] = { 0 };
 	MultiByteToWideChar(CP_UTF8, 0, utf8_str, 3, wstr, 1);
@@ -177,13 +176,14 @@ wchar_t utf8_to_wchar(unsigned char c1, unsigned char c2, unsigned char c3) {
 
 // 判断是否为UTF-8汉语字符
 int isCnChar(unsigned char c1, unsigned char c2, unsigned char c3) {
-	return (c1 >= 0xE0 && c1 <= 0xEF)
-	       && (c2 >= 0x80 && c2 <= 0xBF)
-	       && (c3 >= 0x80 && c3 <= 0xBF);
+	// 中文字符 U+4E00 - U+9FFF 的 UTF-8 编码范围
+	return (c1 >= 0xE4 && c1 <= 0xE9)
+		&& (c2 >= 0x80 && c2 <= 0xBF)
+		&& (c3 >= 0x80 && c3 <= 0xBF);
 }
 
 // 统计字符出现次数
-void countCnChar(unsigned char c1, unsigned char c2, unsigned char c3) {
+void countCnChar(unsigned char c1,  unsigned char c2,  unsigned char c3) {
 	for (int i = 0; i < statLen; i++) {
 		if (statList[i].ch[0] == c1 && statList[i].ch[1] == c2 && statList[i].ch[2] == c3) {
 			statList[i].count++;
@@ -211,7 +211,12 @@ int statFromFile(const char* filename) {
 	int readNum;
 	while ((readNum = fread(buf, 1, 3, fp)) == 3) {
 		if (isCnChar(buf[0], buf[1], buf[2])) {
+			// printf( "[DEBUG] this is a char formated in utf-8" );
 			countCnChar(buf[0], buf[1], buf[2]);
+		}
+
+		else {
+			// printf("[DEBUG] this is not formated by utf-8\n");
 		}
 	}
 	fclose(fp);
@@ -236,6 +241,7 @@ int compareChar(const void* a, const void* b) {
 
 // 打印排序后的结果（更新提示信息）
 void printSortedResult() {
+	printf("[DEBUG] statlen:%d ",statLen);
 	qsort(statList, statLen, sizeof(CharStat), compareChar);
 	printf("\n【汉语字符统计结果（按出现次数降序，次数相同按中文字典顺序升序）】\n");
 	printf("----------------------------------------\n");
@@ -283,56 +289,5 @@ int save_all_results(const char* input_filename, const char* output_filename, in
 	fprintf(res_fp, "========================================================\n");
 	fclose(res_fp);
 	printf("\n All statistical results have been saved to: %s\n", output_filename);
-	return 0;
-}
-
-int main() {
-	system("chcp 65001");  // 控制台UTF-8编码，避免中文乱码
-	const char* input_filename = ".//test01_process.txt";
-	const char* output_filename = ".//text_statistics_result.txt";
-
-	FILE* fp = fopen(input_filename, "rb");
-	if (fp == NULL) {
-		perror("无法打开文件（统计主流程）");
-		return 1;
-	}
-
-	// 统计核心指标
-	int para_cnt = count_paragraphs_in_file(fp);
-	rewind(fp);
-	int sent_cnt = count_sentence_in_file(fp);
-	rewind(fp);
-	int total_cnt = count_total_in_file(fp);
-	fclose(fp);
-
-	// 读取并显示文件内容
-	int read_res = read_chinese_txt(input_filename);
-	if (read_res != 0) {
-		printf("读取文件内容失败\n");
-		return read_res;
-	}
-
-	// 统计字符频次并排序
-	int stat_res = statFromFile(input_filename);
-	if (!stat_res) {
-		printf("字符频次统计失败\n");
-		return 1;
-	}
-
-	// 显示统计摘要
-	printf("\n【控制台统计摘要】\n");
-	printf("----------------------------------------\n");
-	printf("段落总数: %d\n", para_cnt);
-	printf("句子总数：%d\n", sent_cnt);
-	printf("总字数：%d\n", total_cnt);
-	printSortedResult();
-
-	// 保存结果到文件
-	int save_res = save_all_results(input_filename, output_filename, para_cnt, sent_cnt, total_cnt);
-	if (save_res != 0) {
-		printf("保存统计结果失败\n");
-		return save_res;
-	}
-
 	return 0;
 }
