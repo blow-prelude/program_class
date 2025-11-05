@@ -75,8 +75,9 @@ int DocConvert::transform_1dto2d(size_t characters_per_row)
 /*
  *
  * params: size_t characters_per_row   每行的字符数
+ * return: int  转换后文本的行数
  *
- * 该函数实现将一个连续的字符串转成二维向量，其中每行的字数可控
+ * 该函数实现将一个连续的字符串转成二维向量，其中每行的字数可控，为形参
  */ {
     // 从字符串中每次取出一定字数作为一行（一个字符串），遇到全角空格就把该行剩余部分全部用全角空格填充,然后处理下一段
 
@@ -185,7 +186,7 @@ int DocConvert::transform_1dto2d(size_t characters_per_row)
 
 int DocConvert::transpose_matrix(void)
 /*
- *
+ *return :int 如果转置成功就返回0，否则返回非0值
  * 该函数实现对一个矩阵做”转置“运算，其中转置是 (i,j) -> (n-j-1,i)
  */ {
 
@@ -241,7 +242,7 @@ void DocConvert::remove_newline(void)
 
 int DocConvert::save_into_txt(void)
 /*
- *
+ * return :int  保存成功返回0
  * 该函数实现将2个二维向量都保存到文本中
  *
  */
@@ -263,6 +264,9 @@ std::vector<std::string> DocConvert::add_space(std::vector<std::string> &line)
 /*
  *
  * params: std::vector<std::string> &line    存储一行文本的一维向量，每个元素都是一个字符（string类型）
+ * return :std::vector<std::string>  处理后的文本
+ *
+ * 该函数实现在每个字符之间添加一个全角空格
  */
 {
     if (line.size() <= 1) {

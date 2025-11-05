@@ -13,6 +13,7 @@ int main() {
     const std::string raw_filename = root_path + "data/raw/" + test + ".txt";
     const std::string change_filename = root_path + "data/res/" + test + "_change.txt";
     const std::string format_filename = root_path + "data/res/"+ test + "_format.txt";
+    const std::string no_newline_filename = root_path + "data/res/" + test + "_no_newline.txt";
     const std::string count_filename = root_path + "data/res/"+ test + "_count.txt";
     const std::string _2d_filename = root_path + "data/res/" + test + "_2d.txt";
     // const std::string transpose_filename = root_path + "data/res/test01_transpose.txt";
@@ -80,7 +81,7 @@ int main() {
         return read_res;
     }
     // 统计字符频次
-    int stat_res = statFromFile(format_filename.c_str());
+    int stat_res = statFromFile(format_filename.c_str(),no_newline_filename.c_str());
     if (!stat_res) {
         std::cerr << "[ERR] 字符频次统计失败" << std::endl;
         return 1;

@@ -17,7 +17,9 @@ int count_sentence_in_file(FILE* fp);        // 统计UTF-8文件中汉语句子
 int count_total_in_file(FILE* fp);   // 统计总字数
 int isCnChar(unsigned char c1, unsigned char c2, unsigned char c3);     // 判断3字节是否为UTF-8汉语字符/标点
 void countCnChar( unsigned char c1,unsigned char c2,unsigned char c3);    // 统计UTF-8字符
-int statFromFile(const char* filename);      // 从UTF-8编码文件读取并统计
+void remove_all_newlines(FILE* fp);
+size_t fread_skip_newline(void* buf, size_t size, size_t count, FILE* fp) ;
+int statFromFile(const char* filename,const char* outputname);      // 从UTF-8编码文件读取并统计
 int compareChar(const void* a, const void* b);    // 排序比较函数
 void printSortedResult();     // 打印排序后的统计结果
 int save_all_results(const char* input_filename, const char* output_filename, int para_cnt, int sent_cnt, int total_cnt);   // 保存统计结果

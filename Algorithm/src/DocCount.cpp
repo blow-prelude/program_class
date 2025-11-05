@@ -1,10 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
-#include <cctype>
 #include <cstdlib>
+#include <cctype>
 #include <cstring>
 #include <windows.h>
 #include <winnls.h>
+#include <unistd.h>
 
 #include "../inc/DocCount.h"
 
@@ -177,7 +178,7 @@ wchar_t utf8_to_wchar( char c1,  char c2,  char c3) {
 // 判断是否为UTF-8汉语字符
 int isCnChar(unsigned char c1, unsigned char c2, unsigned char c3) {
 	// 中文字符 U+4E00 - U+9FFF 的 UTF-8 编码范围
-	return (c1 >= 0xE4 && c1 <= 0xE9)
+	return (c1 >= 0xE0 && c1 <= 0xEF)
 		&& (c2 >= 0x80 && c2 <= 0xBF)
 		&& (c3 >= 0x80 && c3 <= 0xBF);
 }
@@ -200,28 +201,84 @@ void countCnChar(unsigned char c1,  unsigned char c2,  unsigned char c3) {
 	}
 }
 
+void remove_all_newlines(FILE* fp) {
+	if (!fp) return;
+
+	// 读取整个文件内容
+	fseek(fp, 0, SEEK_END);
+	long size = ftell(fp);
+	rewind(fp);
+
+	if (size <= 0) return;
+
+	char* buffer = (char*)malloc(size);
+	if (!buffer) return;
+
+	size_t read_size = fread(buffer, 1, size, fp);
+	rewind(fp); // 准备重写
+
+	// 写回时跳过所有换行符
+	long write_pos = 0;
+	for (size_t i = 0; i < read_size; ++i) {
+		if (buffer[i] != '\n') {
+			buffer[write_pos++] = buffer[i];
+		}
+	}
+
+	// 重写到文件
+	fwrite(buffer, 1, write_pos, fp);
+	fflush(fp);
+	ftruncate(fileno(fp), write_pos); // 截断多余部分
+	rewind(fp); // 重置文件指针
+
+	free(buffer);
+}
+
+size_t fread_skip_newline(void* buf, size_t size, size_t count, FILE* fp) {
+	unsigned char* p = (unsigned char*)buf;
+	size_t total = 0;
+
+	while (total < size * count) {
+		int c = fgetc(fp);
+		if (c == EOF) break;
+		if (c == '\n' || c == '\r') continue; // 跳过换行符
+		p[total++] = (unsigned char)c;
+	}
+
+	return total / size; // 模拟 fread 的返回值
+}
+
+
 // 从文件读取并统计字符
-int statFromFile(const char* filename) {
+int statFromFile(const char* filename,const char* outputname) {
 	FILE* fp = fopen(filename, "rb");
 	if (fp == NULL) {
 		perror("文件打开失败");
 		return 0;
 	}
-	unsigned char buf[3];
-	int readNum;
-	while ((readNum = fread(buf, 1, 3, fp)) == 3) {
-		if (isCnChar(buf[0], buf[1], buf[2])) {
-			// printf( "[DEBUG] this is a char formated in utf-8" );
-			countCnChar(buf[0], buf[1], buf[2]);
+	// remove_all_newlines(fp);
+
+
+		unsigned char buf[3];
+		int readNum;
+		// while ((readNum = fread(buf, 1, 3, fp)) == 3)
+			while ((readNum = fread_skip_newline(buf, 1, 3, fp)) == 3){
+			printf("%c%c%c", buf[0],buf[1],buf[2]);
+
+			if (isCnChar(buf[0], buf[1], buf[2])) {
+				// printf( "[DEBUG] this is a char formated in utf-8" );
+				countCnChar(buf[0], buf[1], buf[2]);
+			}
+
+			else {
+				// printf("[DEBUG] this is not formated by utf-8\n");
+			}
 		}
 
-		else {
-			// printf("[DEBUG] this is not formated by utf-8\n");
-		}
+		fclose(fp);
+		return 1;
 	}
-	fclose(fp);
-	return 1;
-}
+
 
 // 核心修改：先按出现次数降序，次数相同按中文字典顺序升序
 int compareChar(const void* a, const void* b) {
@@ -257,7 +314,8 @@ void printSortedResult() {
 	}
 }
 
-int save_all_results(const char* input_filename, const char* output_filename, int para_cnt, int sent_cnt, int total_cnt) {
+int save_all_results(const char* input_filename, const char* output_filename, int para_cnt, int sent_cnt, int total_cnt)
+{
 	FILE* res_fp = fopen(output_filename, "w");
 	if (res_fp == NULL) {
 		perror("Failed to create/open result file");
